@@ -33,18 +33,24 @@ public class JugglerView extends FrameLayout {
         if (topViewId == R.id.first_view) {
             viewToTop = secondView;
         }
+        ((FrameLayout) viewToTop).removeAllViews();
         removeView(viewToTop);
         addView(viewToTop);
+        topViewId = viewToTop.getId();
         return viewToTop.getId();
     }
 
     public int addViewToBottom() {
         View viewToBottom = secondView;
+        View viewToClear = firstView;
         if (topViewId == R.id.second_view) {
             viewToBottom = firstView;
+            viewToClear = secondView;
         }
+        ((FrameLayout) viewToClear).removeAllViews();
         removeView(viewToBottom);
         addView(viewToBottom, 0);
+        topViewId = viewToBottom.getId();
         return viewToBottom.getId();
     }
 }
