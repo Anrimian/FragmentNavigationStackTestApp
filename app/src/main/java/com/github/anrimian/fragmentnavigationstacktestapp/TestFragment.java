@@ -13,7 +13,23 @@ import java.util.Random;
 
 public class TestFragment extends Fragment {
 
+    private static final String ID = "id";
+
     private Button button;
+    private int backgroundColor;
+
+    public static TestFragment newInstance(int id) {
+        Bundle args = new Bundle();
+        args.putInt(ID, id);
+        TestFragment fragment = new TestFragment();
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    public TestFragment() {
+        Random rnd = new Random();
+        backgroundColor = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+    }
 
     @Nullable
     @Override
@@ -25,12 +41,11 @@ public class TestFragment extends Fragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         button = view.findViewById(R.id.button);
+        button.setText(String.valueOf(getArguments().getInt(ID)));
         button.setOnClickListener(v -> onButtonClicked());
 
-        Random rnd = new Random();
-        int color = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
         View container = view.findViewById(R.id.container);
-        container.setBackgroundColor(color);
+        container.setBackgroundColor(backgroundColor);
     }
 
     private void onButtonClicked() {
