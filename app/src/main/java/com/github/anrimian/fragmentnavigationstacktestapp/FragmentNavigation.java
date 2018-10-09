@@ -28,17 +28,11 @@ public class FragmentNavigation {
     }
 
     public void addNewFragment(FragmentCreator fragmentCreator) {
-        addNewFragment(fragmentCreator, 0, 0);
+        addNewFragment(fragmentCreator, 0);
     }
 
     public void addNewFragment(FragmentCreator fragmentCreator,
                                @AnimRes int enterAnimation) {
-        addNewFragment(fragmentCreator, enterAnimation, 0);
-    }
-
-    public void addNewFragment(FragmentCreator fragmentCreator,
-                               @AnimRes int enterAnimation,
-                               @AnimRes int exitAnimation) {
         if (isNavigationEnabled) {
             isNavigationEnabled = false;
             fragments.add(fragmentCreator);
@@ -46,7 +40,7 @@ public class FragmentNavigation {
             bottomFragment = topFragment;
             topFragment = fragments.getLast().createFragment();
             fragmentManager.beginTransaction()
-                    .setCustomAnimations(enterAnimation, exitAnimation)
+                    .setCustomAnimations(enterAnimation, 0)
                     .replace(id, topFragment)
                     .runOnCommit(() -> isNavigationEnabled = true)
                     .commit();
@@ -54,14 +48,10 @@ public class FragmentNavigation {
     }
 
     public boolean goBack() {
-        return goBack(0, 0);
+        return goBack(0);
     }
 
     public boolean goBack(@AnimRes int exitAnimation) {
-        return goBack(0, exitAnimation);
-    }
-
-    public boolean goBack(@AnimRes int enterAnimation, @AnimRes int exitAnimation) {
         if (fragments.size() <= 1) {
             return false;
         }
@@ -69,7 +59,7 @@ public class FragmentNavigation {
             isNavigationEnabled = false;
             fragments.removeLast();
             fragmentManager.beginTransaction()
-                    .setCustomAnimations(enterAnimation, exitAnimation)
+                    .setCustomAnimations(0, exitAnimation)
                     .remove(topFragment)
                     .runOnCommit(() -> replaceBottomFragment(exitAnimation))
                     .commit();
