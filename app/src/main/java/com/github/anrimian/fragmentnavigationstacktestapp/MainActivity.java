@@ -1,13 +1,10 @@
 package com.github.anrimian.fragmentnavigationstacktestapp;
 
-import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 
-import java.util.LinkedList;
+import com.github.anrimian.fragmentnavigationstacktestapp.navigation.FragmentNavigation;
+import com.github.anrimian.fragmentnavigationstacktestapp.navigation.JugglerView;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -19,7 +16,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         JugglerView jugglerView = findViewById(R.id.juggler_view);
 
-        navigation = new FragmentNavigation(jugglerView, getSupportFragmentManager());
+        navigation = FragmentNavigation.from(getSupportFragmentManager());
+        navigation.initialize(jugglerView);
 
         if (savedInstanceState == null) {
             navigation.addNewFragment(() -> TestFragment.newInstance(0));
@@ -34,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void addNewFragment() {
-        int fragmentsCount = navigation.getScreenCount();
+        int fragmentsCount = navigation.getScreensCount();
         navigation.addNewFragment(() -> TestFragment.newInstance(fragmentsCount), R.anim.anim_slide_in_right);
     }
 }

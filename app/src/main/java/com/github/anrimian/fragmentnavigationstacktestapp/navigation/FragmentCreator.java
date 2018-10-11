@@ -1,4 +1,4 @@
-package com.github.anrimian.fragmentnavigationstacktestapp;
+package com.github.anrimian.fragmentnavigationstacktestapp.navigation;
 
 import android.support.v4.app.Fragment;
 

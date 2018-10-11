@@ -9,26 +9,26 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
+import com.github.anrimian.fragmentnavigationstacktestapp.navigation.FragmentNavigation;
+
 import java.util.Random;
 
 public class TestFragment extends Fragment {
 
     private static final String ID = "id";
+    private static final String COLOR = "color";
 
     private Button button;
-    private int backgroundColor;
 
     public static TestFragment newInstance(int id) {
         Bundle args = new Bundle();
         args.putInt(ID, id);
+        Random rnd = new Random();
+        int backgroundColor = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+        args.putInt(COLOR, backgroundColor);
         TestFragment fragment = new TestFragment();
         fragment.setArguments(args);
         return fragment;
-    }
-
-    public TestFragment() {
-        Random rnd = new Random();
-        backgroundColor = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
     }
 
     @Nullable
@@ -45,10 +45,12 @@ public class TestFragment extends Fragment {
         button.setOnClickListener(v -> onButtonClicked());
 
         View container = view.findViewById(R.id.container);
-        container.setBackgroundColor(backgroundColor);
+        container.setBackgroundColor(getArguments().getInt(COLOR));
     }
 
     private void onButtonClicked() {
-        ((MainActivity) getActivity()).addNewFragment();
+        FragmentNavigation navigation = FragmentNavigation.from(requireFragmentManager());
+        int fragmentsCount = navigation.getScreensCount();
+        navigation.addNewFragment(() -> TestFragment.newInstance(fragmentsCount), R.anim.anim_slide_in_right);
     }
 }
