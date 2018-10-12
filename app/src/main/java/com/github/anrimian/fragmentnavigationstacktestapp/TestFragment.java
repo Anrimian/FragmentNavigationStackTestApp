@@ -5,6 +5,9 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -31,6 +34,12 @@ public class TestFragment extends Fragment {
         return fragment;
     }
 
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
@@ -46,6 +55,29 @@ public class TestFragment extends Fragment {
 
         View container = view.findViewById(R.id.container);
         container.setBackgroundColor(getArguments().getInt(COLOR));
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        if (getArguments().getInt(ID) % 2 == 0) {
+            inflater.inflate(R.menu.test_fragment_menu, menu);
+        } else {
+            inflater.inflate(R.menu.test_fragment_menu_two, menu);
+        }
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_test: {
+                Random rnd = new Random();
+                int backgroundColor = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
+                button.setBackgroundColor(backgroundColor);
+                return true;
+            }
+        }
+        return false;
     }
 
     private void onButtonClicked() {

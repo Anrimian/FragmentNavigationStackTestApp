@@ -40,6 +40,8 @@ public class FragmentNavigation {
         this.jugglerView = jugglerView;
         jugglerView.setPresenter(jugglerViewPresenter);
         jugglerViewPresenter.initializeView(jugglerView);
+
+        hideBottomFragmentMenu();
     }
 
     public void addNewFragment(FragmentCreator fragmentCreator) {
@@ -48,7 +50,6 @@ public class FragmentNavigation {
 
     //TODO replace current fragment feature
     //TODO create with exist stack feature
-    //TODO hide fragment menu feature
 
     public void addNewFragment(FragmentCreator fragmentCreator,
                                @AnimRes int enterAnimation) {
@@ -64,7 +65,10 @@ public class FragmentNavigation {
                 .beginTransaction()
                 .setCustomAnimations(enterAnimation, 0)
                 .replace(id, topFragment)
-                .runOnCommit(() -> isNavigationEnabled = true)
+                .runOnCommit(() -> {
+                    isNavigationEnabled = true;
+                    hideBottomFragmentMenu();
+                })
                 .commit();
     }
 
@@ -100,11 +104,18 @@ public class FragmentNavigation {
                 .findFragmentById(jugglerViewPresenter.getTopViewId());
     }
 
+    private Fragment getFragmentOnBottom() {
+        return fragmentManagerProvider.getFragmentManager()
+                .findFragmentById(jugglerViewPresenter.getBottomViewId());
+    }
+
     private void replaceBottomFragment(@AnimRes int exitAnimation) {
+        getFragmentOnBottom().setMenuVisibility(true);
         jugglerView.postDelayed(() -> {
             int id = jugglerView.prepareBottomView();
             if (fragments.size() > 1) {
                 Fragment bottomFragment = fragments.get(fragments.size() - 2).createFragment();//find better solution later
+                bottomFragment.setMenuVisibility(false);
                 fragmentManagerProvider.getFragmentManager()
                         .beginTransaction()
                         .replace(id, bottomFragment)
@@ -114,6 +125,13 @@ public class FragmentNavigation {
                 isNavigationEnabled = true;
             }
         }, getAnimationDuration(exitAnimation));
+    }
+
+    private void hideBottomFragmentMenu() {
+        Fragment fragment = getFragmentOnBottom();
+        if (fragment != null) {
+            fragment.setMenuVisibility(false);
+        }
     }
 
     private long getAnimationDuration(@AnimRes int exitAnimation) {

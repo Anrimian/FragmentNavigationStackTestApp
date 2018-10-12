@@ -8,6 +8,7 @@ class JugglerViewPresenter {
     private int secondViewId = ViewCompat.generateViewId();
 
     private int topViewId = secondViewId;
+    private int bottomViewId = firstViewId;
 
     void initializeView(JugglerView view) {
         view.init(firstViewId, secondViewId, topViewId);
@@ -25,7 +26,14 @@ class JugglerViewPresenter {
         return topViewId;
     }
 
+    int getBottomViewId() {
+        return bottomViewId;
+    }
+
     void onTopViewIdSelected(int topViewId) {
-        this.topViewId = topViewId;
+        if (this.topViewId != topViewId) {
+            bottomViewId = this.topViewId;
+            this.topViewId = topViewId;
+        }
     }
 }
