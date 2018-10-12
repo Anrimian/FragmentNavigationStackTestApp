@@ -19,9 +19,6 @@ public class FragmentNavigation {
     private final JugglerViewPresenter jugglerViewPresenter = new JugglerViewPresenter();
     private JugglerView jugglerView;
 
-    private Fragment topFragment;
-    private Fragment bottomFragment;
-
     private boolean isNavigationEnabled = true;
 
     public static FragmentNavigation from(FragmentManager fm) {
@@ -51,24 +48,24 @@ public class FragmentNavigation {
 
     //TODO replace current fragment feature
     //TODO create with exist stack feature
+    //TODO hide fragment menu feature
 
     public void addNewFragment(FragmentCreator fragmentCreator,
                                @AnimRes int enterAnimation) {
         checkForInitialization();
-        if (isNavigationEnabled) {
-            isNavigationEnabled = false;
-            fragments.add(fragmentCreator);
-            int id = jugglerView.prepareTopView();
-            bottomFragment = topFragment;
-            topFragment = fragments.getLast().createFragment();
-            fragmentManagerProvider.getFragmentManager()
-                    .beginTransaction()
-                    .setCustomAnimations(enterAnimation, 0)
-                    .replace(id, topFragment)
-                    .runOnCommit(() -> isNavigationEnabled = true)
-                    .commit();
+        if (!isNavigationEnabled) {
+            return;
         }
-
+        isNavigationEnabled = false;
+        fragments.add(fragmentCreator);
+        int id = jugglerView.prepareTopView();
+        Fragment topFragment = fragments.getLast().createFragment();
+        fragmentManagerProvider.getFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(enterAnimation, 0)
+                .replace(id, topFragment)
+                .runOnCommit(() -> isNavigationEnabled = true)
+                .commit();
     }
 
     public boolean goBack() {
@@ -80,16 +77,17 @@ public class FragmentNavigation {
         if (fragments.size() <= 1) {
             return false;
         }
-        if (isNavigationEnabled) {
-            isNavigationEnabled = false;
-            fragments.removeLast();
-            fragmentManagerProvider.getFragmentManager()
-                    .beginTransaction()
-                    .setCustomAnimations(0, exitAnimation)//TODO not working after rotation
-                    .remove(topFragment)
-                    .runOnCommit(() -> replaceBottomFragment(exitAnimation))
-                    .commit();
+        if (!isNavigationEnabled) {
+            return true;
         }
+        isNavigationEnabled = false;
+        fragments.removeLast();
+        fragmentManagerProvider.getFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(0, exitAnimation)
+                .remove(getFragmentOnTop())
+                .runOnCommit(() -> replaceBottomFragment(exitAnimation))
+                .commit();
         return true;
     }
 
@@ -97,12 +95,16 @@ public class FragmentNavigation {
         return fragments.size();
     }
 
+    private Fragment getFragmentOnTop() {
+        return fragmentManagerProvider.getFragmentManager()
+                .findFragmentById(jugglerViewPresenter.getTopViewId());
+    }
+
     private void replaceBottomFragment(@AnimRes int exitAnimation) {
         jugglerView.postDelayed(() -> {
             int id = jugglerView.prepareBottomView();
-            topFragment = bottomFragment;
             if (fragments.size() > 1) {
-                bottomFragment = fragments.get(fragments.size() - 2).createFragment();//find better solution later
+                Fragment bottomFragment = fragments.get(fragments.size() - 2).createFragment();//find better solution later
                 fragmentManagerProvider.getFragmentManager()
                         .beginTransaction()
                         .replace(id, bottomFragment)
