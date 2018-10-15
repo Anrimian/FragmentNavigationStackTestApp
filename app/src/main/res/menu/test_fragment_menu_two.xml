@@ -4,4 +4,8 @@
     <item android:id="@+id/menu_test"
         android:title="test"
         app:showAsAction="always"/>
+
+    <item android:id="@+id/menu_test_root"
+        android:title="new root"
+        app:showAsAction="ifRoom"/>
 </menu>

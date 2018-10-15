@@ -76,6 +76,10 @@ public class TestFragment extends Fragment {
                 button.setBackgroundColor(backgroundColor);
                 return true;
             }
+            case R.id.menu_test_root: {
+                FragmentNavigation.from(requireFragmentManager())
+                        .newRootFragment(() -> TestFragment.newInstance(0), R.anim.anim_alpha_disappear);
+            }
         }
         return false;
     }

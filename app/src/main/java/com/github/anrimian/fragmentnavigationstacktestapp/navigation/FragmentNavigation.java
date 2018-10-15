@@ -4,6 +4,7 @@ import android.content.res.Resources;
 import android.support.annotation.AnimRes;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 
@@ -48,7 +49,6 @@ public class FragmentNavigation {
         addNewFragment(fragmentCreator, 0);
     }
 
-    //TODO replace current fragment feature
     //TODO create with exist stack feature
 
     public void addNewFragment(FragmentCreator fragmentCreator,
@@ -60,7 +60,7 @@ public class FragmentNavigation {
         isNavigationEnabled = false;
         fragments.add(fragmentCreator);
         int id = jugglerView.prepareTopView();
-        Fragment topFragment = fragments.getLast().createFragment();
+        Fragment topFragment = fragmentCreator.createFragment();
         fragmentManagerProvider.getFragmentManager()
                 .beginTransaction()
                 .setCustomAnimations(enterAnimation, 0)
@@ -69,6 +69,41 @@ public class FragmentNavigation {
                     isNavigationEnabled = true;
                     hideBottomFragmentMenu();
                 })
+                .commit();
+    }
+
+    public void newRootFragment(FragmentCreator fragmentCreator) {
+        newRootFragment(fragmentCreator, 0);
+    }
+
+    public void newRootFragment(FragmentCreator fragmentCreator, @AnimRes int exitAnimation) {
+        newRootFragment(fragmentCreator, exitAnimation, 0);
+    }
+
+    public void newRootFragment(FragmentCreator fragmentCreator,
+                                @AnimRes int exitAnimation,
+                                @AnimRes int enterAnimation) {
+        checkForInitialization();
+        if (!isNavigationEnabled) {
+            return;
+        }
+        isNavigationEnabled = false;
+        Fragment oldBottomFragment = getFragmentOnBottom();
+        Fragment newRootFragment = fragmentCreator.createFragment();
+        fragments.clear();
+        fragments.add(fragmentCreator);
+        int topViewId = jugglerViewPresenter.getTopViewId();
+        FragmentTransaction transaction = fragmentManagerProvider.getFragmentManager()
+                .beginTransaction();
+        if (oldBottomFragment != null) {
+            // I don't see it, but guess:
+            // while oldTopFragment disappears, bottom fragment can be little visible.
+            // How to check it?
+            transaction.remove(oldBottomFragment);
+        }
+        transaction.setCustomAnimations(enterAnimation, exitAnimation)
+                .replace(topViewId, newRootFragment)
+                .runOnCommit(() -> isNavigationEnabled = true)
                 .commit();
     }
 

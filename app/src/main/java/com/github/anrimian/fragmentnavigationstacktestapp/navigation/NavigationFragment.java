@@ -14,7 +14,7 @@ public class NavigationFragment extends Fragment {
         setRetainInstance(true);
     }
 
-    public FragmentNavigation getFragmentNavigation() {
+    FragmentNavigation getFragmentNavigation() {
         if (fragmentNavigation == null) {
             fragmentNavigation = new FragmentNavigation(this::getFragmentManager);
         }
