@@ -50,6 +50,10 @@ public class FragmentNavigation {
     }
 
     //TODO create with exist stack feature
+    //TODO fragment visibility callback
+    //TODO default animations
+    //TODO check current fragment for equality
+    //TODO stack change listener
 
     public void addNewFragment(FragmentCreator fragmentCreator,
                                @AnimRes int enterAnimation) {
@@ -128,6 +132,23 @@ public class FragmentNavigation {
                 .runOnCommit(() -> replaceBottomFragment(exitAnimation))
                 .commit();
         return true;
+    }
+
+    public void clearRootFragment(@AnimRes int exitAnimation) {
+        checkForInitialization();
+        if (fragments.size() < 1) {
+            return;
+        }
+        if (fragments.size() > 1) {
+            throw new IllegalStateException("can not clear: fragment is not root");
+        }
+
+        fragments.removeLast();
+        fragmentManagerProvider.getFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(0, exitAnimation)
+                .remove(getFragmentOnTop())
+                .commit();
     }
 
     public int getScreensCount() {
