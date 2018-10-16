@@ -25,6 +25,8 @@ public class FragmentNavigation {
 
     private boolean isNavigationEnabled = true;
 
+    private boolean checkOnEqualityOnReplace = true;
+
     public static FragmentNavigation from(FragmentManager fm) {
         NavigationFragment container = (NavigationFragment) fm.findFragmentByTag(NAVIGATION_FRAGMENT_TAG);
         if (container == null) {
@@ -55,7 +57,6 @@ public class FragmentNavigation {
 
     //TODO create with exist stack feature
     //TODO default animations
-    //TODO check current fragment for equality
 
     public void addNewFragment(FragmentCreator fragmentCreator,
                                @AnimRes int enterAnimation) {
@@ -81,23 +82,45 @@ public class FragmentNavigation {
     }
 
     public void newRootFragment(FragmentCreator fragmentCreator) {
-        newRootFragment(fragmentCreator, 0);
+        newRootFragment(fragmentCreator, checkOnEqualityOnReplace, 0);
     }
 
-    public void newRootFragment(FragmentCreator fragmentCreator, @AnimRes int exitAnimation) {
-        newRootFragment(fragmentCreator, exitAnimation, 0);
+    public void newRootFragment(FragmentCreator fragmentCreator, boolean checkForEquality) {
+        newRootFragment(fragmentCreator, checkForEquality, 0);
     }
 
     public void newRootFragment(FragmentCreator fragmentCreator,
+                                boolean checkForEquality,
+                                @AnimRes int exitAnimation) {
+        newRootFragment(fragmentCreator, checkForEquality, exitAnimation, 0);
+    }
+
+    public void newRootFragment(FragmentCreator fragmentCreator, @AnimRes int exitAnimation) {
+        newRootFragment(fragmentCreator, checkOnEqualityOnReplace, exitAnimation, 0);
+    }
+
+    public void newRootFragment(FragmentCreator fragmentCreator,
+                                @AnimRes int exitAnimation,
+                                @AnimRes int enterAnimation) {
+        newRootFragment(fragmentCreator, checkOnEqualityOnReplace, exitAnimation, enterAnimation);
+    }
+
+    public void newRootFragment(FragmentCreator fragmentCreator,
+                                boolean checkForEquality,
                                 @AnimRes int exitAnimation,
                                 @AnimRes int enterAnimation) {
         checkForInitialization();
         if (!isNavigationEnabled) {
             return;
         }
+        Fragment newRootFragment = fragmentCreator.createFragment();
+        Fragment oldRootFragment = getFragmentOnTop();
+        if (checkForEquality && equalClass(oldRootFragment, newRootFragment)) {
+            return;
+        }
+
         isNavigationEnabled = false;
         Fragment oldBottomFragment = getFragmentOnBottom();
-        Fragment newRootFragment = fragmentCreator.createFragment();
         fragments.clear();
         fragments.add(fragmentCreator);
         int topViewId = jugglerViewPresenter.getTopViewId();
@@ -181,6 +204,10 @@ public class FragmentNavigation {
         stackListeners.clear();
     }
 
+    public void checkOnEqualityOnReplace(boolean checkOnEqualityOnReplace) {
+        this.checkOnEqualityOnReplace = checkOnEqualityOnReplace;
+    }
+
     public int getScreensCount() {
         return fragments.size();
     }
@@ -261,5 +288,9 @@ public class FragmentNavigation {
         if (jugglerView == null) {
             throw new IllegalStateException("FragmentNavigator must be initialized first");
         }
+    }
+
+    private boolean equalClass(Object first, Object second) {
+        return (first != null && first.getClass().equals(second.getClass()));
     }
 }
