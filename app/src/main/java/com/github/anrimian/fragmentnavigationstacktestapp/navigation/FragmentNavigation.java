@@ -25,7 +25,12 @@ public class FragmentNavigation {
 
     private boolean isNavigationEnabled = true;
 
-    private boolean checkOnEqualityOnReplace = true;
+    private boolean checkOnEqualityOnReplace = false;
+
+    @AnimRes private int enterAnimation = 0;
+    @AnimRes private int exitAnimation = 0;
+    @AnimRes private int rootEnterAnimation = 0;
+    @AnimRes private int rootExitAnimation = 0;
 
     public static FragmentNavigation from(FragmentManager fm) {
         NavigationFragment container = (NavigationFragment) fm.findFragmentByTag(NAVIGATION_FRAGMENT_TAG);
@@ -52,7 +57,7 @@ public class FragmentNavigation {
     }
 
     public void addNewFragment(FragmentCreator fragmentCreator) {
-        addNewFragment(fragmentCreator, 0);
+        addNewFragment(fragmentCreator, enterAnimation);
     }
 
     //TODO create with exist stack feature
@@ -82,21 +87,21 @@ public class FragmentNavigation {
     }
 
     public void newRootFragment(FragmentCreator fragmentCreator) {
-        newRootFragment(fragmentCreator, checkOnEqualityOnReplace, 0);
+        newRootFragment(fragmentCreator, checkOnEqualityOnReplace, rootExitAnimation);
     }
 
     public void newRootFragment(FragmentCreator fragmentCreator, boolean checkForEquality) {
-        newRootFragment(fragmentCreator, checkForEquality, 0);
+        newRootFragment(fragmentCreator, checkForEquality, rootExitAnimation);
     }
 
     public void newRootFragment(FragmentCreator fragmentCreator,
                                 boolean checkForEquality,
                                 @AnimRes int exitAnimation) {
-        newRootFragment(fragmentCreator, checkForEquality, exitAnimation, 0);
+        newRootFragment(fragmentCreator, checkForEquality, exitAnimation, rootEnterAnimation);
     }
 
     public void newRootFragment(FragmentCreator fragmentCreator, @AnimRes int exitAnimation) {
-        newRootFragment(fragmentCreator, checkOnEqualityOnReplace, exitAnimation, 0);
+        newRootFragment(fragmentCreator, checkOnEqualityOnReplace, exitAnimation, rootEnterAnimation);
     }
 
     public void newRootFragment(FragmentCreator fragmentCreator,
@@ -143,9 +148,13 @@ public class FragmentNavigation {
     }
 
     public boolean goBack() {
-        return goBack(0);
+        return goBack(exitAnimation);
     }
 
+    /**
+     *
+     * @return if back accepted or not
+     */
     public boolean goBack(@AnimRes int exitAnimation) {
         checkForInitialization();
         if (fragments.size() <= 1) {
@@ -206,6 +215,22 @@ public class FragmentNavigation {
 
     public void checkOnEqualityOnReplace(boolean checkOnEqualityOnReplace) {
         this.checkOnEqualityOnReplace = checkOnEqualityOnReplace;
+    }
+
+    public void setEnterAnimation(int enterAnimation) {
+        this.enterAnimation = enterAnimation;
+    }
+
+    public void setExitAnimation(int exitAnimation) {
+        this.exitAnimation = exitAnimation;
+    }
+
+    public void setRootEnterAnimation(int rootEnterAnimation) {
+        this.rootEnterAnimation = rootEnterAnimation;
+    }
+
+    public void setRootExitAnimation(int rootExitAnimation) {
+        this.rootExitAnimation = rootExitAnimation;
     }
 
     public int getScreensCount() {

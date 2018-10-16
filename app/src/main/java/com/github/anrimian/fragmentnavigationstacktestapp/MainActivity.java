@@ -22,15 +22,18 @@ public class MainActivity extends AppCompatActivity {
         navigation = FragmentNavigation.from(getSupportFragmentManager());
         navigation.initialize(jugglerView);
         navigation.addStackChangeListener(listener);
+        navigation.setExitAnimation(R.anim.anim_slide_out_right);
+        navigation.setEnterAnimation(R.anim.anim_slide_in_right);
+        navigation.setRootExitAnimation(R.anim.anim_alpha_disappear);
 
         if (savedInstanceState == null) {
-            navigation.addNewFragment(() -> TestFragment.newInstance(0));
+            navigation.newRootFragment(() -> TestFragment.newInstance(0));
         }
     }
 
     @Override
     public void onBackPressed() {
-        if (!navigation.goBack(R.anim.anim_slide_out_right)) {
+        if (!navigation.goBack()) {
             super.onBackPressed();
         }
     }

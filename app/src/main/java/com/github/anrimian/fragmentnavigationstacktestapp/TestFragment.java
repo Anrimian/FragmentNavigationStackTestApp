@@ -84,7 +84,7 @@ public class TestFragment extends Fragment implements FragmentVisibilityListener
             }
             case R.id.menu_test_root: {
                 FragmentNavigation.from(requireFragmentManager())
-                        .newRootFragment(() -> TestFragment.newInstance(0), R.anim.anim_alpha_disappear);
+                        .newRootFragment(() -> TestFragment.newInstance(0));
             }
         }
         return false;
@@ -93,6 +93,6 @@ public class TestFragment extends Fragment implements FragmentVisibilityListener
     private void onButtonClicked() {
         FragmentNavigation navigation = FragmentNavigation.from(requireFragmentManager());
         int fragmentsCount = navigation.getScreensCount();
-        navigation.addNewFragment(() -> TestFragment.newInstance(fragmentsCount), R.anim.anim_slide_in_right);
+        navigation.addNewFragment(() -> TestFragment.newInstance(fragmentsCount));
     }
 }
