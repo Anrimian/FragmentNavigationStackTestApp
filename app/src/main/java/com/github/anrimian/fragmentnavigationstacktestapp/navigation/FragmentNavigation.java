@@ -9,6 +9,7 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 
 import java.util.LinkedList;
+import java.util.List;
 
 public class FragmentNavigation {
 
@@ -16,6 +17,7 @@ public class FragmentNavigation {
 
     private final FragmentManagerProvider fragmentManagerProvider;
     private final LinkedList<FragmentCreator> fragments = new LinkedList<>();
+    private final List<FragmentStackListener> stackListeners = new LinkedList<>();
 
     private final JugglerViewPresenter jugglerViewPresenter = new JugglerViewPresenter();
     private JugglerView jugglerView;
@@ -53,7 +55,6 @@ public class FragmentNavigation {
     //TODO fragment visibility callback
     //TODO default animations
     //TODO check current fragment for equality
-    //TODO stack change listener
 
     public void addNewFragment(FragmentCreator fragmentCreator,
                                @AnimRes int enterAnimation) {
@@ -72,6 +73,7 @@ public class FragmentNavigation {
                 .runOnCommit(() -> {
                     isNavigationEnabled = true;
                     hideBottomFragmentMenu();
+                    notifyStackListeners();
                 })
                 .commit();
     }
@@ -107,7 +109,10 @@ public class FragmentNavigation {
         }
         transaction.setCustomAnimations(enterAnimation, exitAnimation)
                 .replace(topViewId, newRootFragment)
-                .runOnCommit(() -> isNavigationEnabled = true)
+                .runOnCommit(() -> {
+                    isNavigationEnabled = true;
+                    notifyStackListeners();
+                })
                 .commit();
     }
 
@@ -129,7 +134,10 @@ public class FragmentNavigation {
                 .beginTransaction()
                 .setCustomAnimations(0, exitAnimation)
                 .remove(getFragmentOnTop())
-                .runOnCommit(() -> replaceBottomFragment(exitAnimation))
+                .runOnCommit(() -> {
+                    replaceBottomFragment(exitAnimation);
+                    notifyStackListeners();
+                })
                 .commit();
         return true;
     }
@@ -148,11 +156,36 @@ public class FragmentNavigation {
                 .beginTransaction()
                 .setCustomAnimations(0, exitAnimation)
                 .remove(getFragmentOnTop())
+                .runOnCommit(this::notifyStackListeners)
                 .commit();
+    }
+
+    /**
+     *
+     * Don't forget to remove listener if you don't need it more
+     *
+     * @param listener to notify
+     */
+    public void addStackChangeListener(FragmentStackListener listener) {
+        stackListeners.add(listener);
+    }
+
+    public void removeStackChangeListener(FragmentStackListener listener) {
+        stackListeners.remove(listener);
+    }
+
+    public void clearStackChangeListeners() {
+        stackListeners.clear();
     }
 
     public int getScreensCount() {
         return fragments.size();
+    }
+
+    private void notifyStackListeners() {
+        for (FragmentStackListener listener: stackListeners) {
+            listener.onStackChanged(getScreensCount());
+        }
     }
 
     private Fragment getFragmentOnTop() {

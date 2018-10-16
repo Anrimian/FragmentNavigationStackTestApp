@@ -2,13 +2,16 @@ package com.github.anrimian.fragmentnavigationstacktestapp;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.widget.Toast;
 
 import com.github.anrimian.fragmentnavigationstacktestapp.navigation.FragmentNavigation;
+import com.github.anrimian.fragmentnavigationstacktestapp.navigation.FragmentStackListener;
 import com.github.anrimian.fragmentnavigationstacktestapp.navigation.JugglerView;
 
 public class MainActivity extends AppCompatActivity {
 
     private FragmentNavigation navigation;
+    private final FragmentStackListener listener = new StackChangeListenerImpl();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,6 +21,7 @@ public class MainActivity extends AppCompatActivity {
 
         navigation = FragmentNavigation.from(getSupportFragmentManager());
         navigation.initialize(jugglerView);
+        navigation.addStackChangeListener(listener);
 
         if (savedInstanceState == null) {
             navigation.addNewFragment(() -> TestFragment.newInstance(0));
@@ -31,8 +35,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void addNewFragment() {
-        int fragmentsCount = navigation.getScreensCount();
-        navigation.addNewFragment(() -> TestFragment.newInstance(fragmentsCount), R.anim.anim_slide_in_right);
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        navigation.removeStackChangeListener(listener);
+    }
+
+    private class StackChangeListenerImpl implements FragmentStackListener {
+        @Override
+        public void onStackChanged(int stackSize) {
+            Toast.makeText(MainActivity.this, "stack size: " + stackSize, Toast.LENGTH_SHORT).show();
+
+        }
     }
 }
