@@ -13,10 +13,11 @@ import android.view.ViewGroup;
 import android.widget.Button;
 
 import com.github.anrimian.fragmentnavigationstacktestapp.navigation.FragmentNavigation;
+import com.github.anrimian.fragmentnavigationstacktestapp.navigation.FragmentVisibilityListener;
 
 import java.util.Random;
 
-public class TestFragment extends Fragment {
+public class TestFragment extends Fragment implements FragmentVisibilityListener {
 
     private static final String ID = "id";
     private static final String COLOR = "color";
@@ -55,6 +56,11 @@ public class TestFragment extends Fragment {
 
         View container = view.findViewById(R.id.container);
         container.setBackgroundColor(getArguments().getInt(COLOR));
+    }
+
+    @Override
+    public void onFragmentVisible() {
+        getActivity().setTitle("title: " + getArguments().getInt(ID));
     }
 
     @Override

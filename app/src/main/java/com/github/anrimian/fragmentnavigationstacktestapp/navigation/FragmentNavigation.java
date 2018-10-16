@@ -2,6 +2,7 @@ package com.github.anrimian.fragmentnavigationstacktestapp.navigation;
 
 import android.content.res.Resources;
 import android.support.annotation.AnimRes;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
@@ -45,6 +46,7 @@ public class FragmentNavigation {
         jugglerViewPresenter.initializeView(jugglerView);
 
         hideBottomFragmentMenu();
+        notifyFragmentVisible(getFragmentOnTop());
     }
 
     public void addNewFragment(FragmentCreator fragmentCreator) {
@@ -52,7 +54,6 @@ public class FragmentNavigation {
     }
 
     //TODO create with exist stack feature
-    //TODO fragment visibility callback
     //TODO default animations
     //TODO check current fragment for equality
 
@@ -74,6 +75,7 @@ public class FragmentNavigation {
                     isNavigationEnabled = true;
                     hideBottomFragmentMenu();
                     notifyStackListeners();
+                    notifyFragmentVisible(getFragmentOnTop());
                 })
                 .commit();
     }
@@ -112,6 +114,7 @@ public class FragmentNavigation {
                 .runOnCommit(() -> {
                     isNavigationEnabled = true;
                     notifyStackListeners();
+                    notifyFragmentVisible(getFragmentOnTop());
                 })
                 .commit();
     }
@@ -182,24 +185,35 @@ public class FragmentNavigation {
         return fragments.size();
     }
 
+    @Nullable
+    public Fragment getFragmentOnTop() {
+        return fragmentManagerProvider.getFragmentManager()
+                .findFragmentById(jugglerViewPresenter.getTopViewId());
+    }
+
+    @Nullable
+    public Fragment getFragmentOnBottom() {
+        return fragmentManagerProvider.getFragmentManager()
+                .findFragmentById(jugglerViewPresenter.getBottomViewId());
+    }
+
+    private void notifyFragmentVisible(Fragment fragment) {
+        if (fragment instanceof FragmentVisibilityListener) {
+            ((FragmentVisibilityListener) fragment).onFragmentVisible();
+        }
+    }
+
     private void notifyStackListeners() {
         for (FragmentStackListener listener: stackListeners) {
             listener.onStackChanged(getScreensCount());
         }
     }
 
-    private Fragment getFragmentOnTop() {
-        return fragmentManagerProvider.getFragmentManager()
-                .findFragmentById(jugglerViewPresenter.getTopViewId());
-    }
-
-    private Fragment getFragmentOnBottom() {
-        return fragmentManagerProvider.getFragmentManager()
-                .findFragmentById(jugglerViewPresenter.getBottomViewId());
-    }
-
     private void replaceBottomFragment(@AnimRes int exitAnimation) {
-        getFragmentOnBottom().setMenuVisibility(true);
+        Fragment fragment = requireFragmentAtBottom();
+        fragment.setMenuVisibility(true);
+        notifyFragmentVisible(fragment);
+
         jugglerView.postDelayed(() -> {
             int id = jugglerView.prepareBottomView();
             if (fragments.size() > 1) {
@@ -214,6 +228,14 @@ public class FragmentNavigation {
                 isNavigationEnabled = true;
             }
         }, getAnimationDuration(exitAnimation));
+    }
+
+    private Fragment requireFragmentAtBottom() {
+        Fragment fragment = getFragmentOnBottom();
+        if (fragment == null) {
+            throw new NullPointerException("required fragment from bottom is null");
+        }
+        return fragment;
     }
 
     private void hideBottomFragmentMenu() {
