@@ -2,6 +2,7 @@ package com.github.anrimian.fragmentnavigationstacktestapp.navigation;
 
 import android.content.res.Resources;
 import android.support.annotation.AnimRes;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -47,13 +48,13 @@ public class FragmentNavigation {
         this.fragmentManagerProvider = fragmentManagerProvider;
     }
 
-    public void initialize(JugglerView jugglerView) {
+    public void initialize(@NonNull JugglerView jugglerView) {
         this.jugglerView = jugglerView;
         jugglerView.setPresenter(jugglerViewPresenter);
         jugglerViewPresenter.initializeView(jugglerView);
 
         hideBottomFragmentMenu();
-        notifyFragmentVisible(getFragmentOnTop());
+        notifyFragmentMovedToTop(getFragmentOnTop());
     }
 
     public void addNewFragment(FragmentCreator fragmentCreator) {
@@ -61,7 +62,6 @@ public class FragmentNavigation {
     }
 
     //TODO create with exist stack feature
-    //TODO default animations
 
     public void addNewFragment(FragmentCreator fragmentCreator,
                                @AnimRes int enterAnimation) {
@@ -81,7 +81,7 @@ public class FragmentNavigation {
                     isNavigationEnabled = true;
                     hideBottomFragmentMenu();
                     notifyStackListeners();
-                    notifyFragmentVisible(getFragmentOnTop());
+                    notifyFragmentMovedToTop(getFragmentOnTop());
                 })
                 .commit();
     }
@@ -142,7 +142,7 @@ public class FragmentNavigation {
                 .runOnCommit(() -> {
                     isNavigationEnabled = true;
                     notifyStackListeners();
-                    notifyFragmentVisible(getFragmentOnTop());
+                    notifyFragmentMovedToTop(getFragmentOnTop());
                 })
                 .commit();
     }
@@ -213,7 +213,7 @@ public class FragmentNavigation {
         stackListeners.clear();
     }
 
-    public void checkOnEqualityOnReplace(boolean checkOnEqualityOnReplace) {
+    public void checkForEqualityOnReplace(boolean checkOnEqualityOnReplace) {
         this.checkOnEqualityOnReplace = checkOnEqualityOnReplace;
     }
 
@@ -249,9 +249,9 @@ public class FragmentNavigation {
                 .findFragmentById(jugglerViewPresenter.getBottomViewId());
     }
 
-    private void notifyFragmentVisible(Fragment fragment) {
-        if (fragment instanceof FragmentVisibilityListener) {
-            ((FragmentVisibilityListener) fragment).onFragmentVisible();
+    private void notifyFragmentMovedToTop(Fragment fragment) {
+        if (fragment instanceof FragmentLayerListener) {
+            ((FragmentLayerListener) fragment).onFragmentMovedOnTop();
         }
     }
 
@@ -264,7 +264,7 @@ public class FragmentNavigation {
     private void replaceBottomFragment(@AnimRes int exitAnimation) {
         Fragment fragment = requireFragmentAtBottom();
         fragment.setMenuVisibility(true);
-        notifyFragmentVisible(fragment);
+        notifyFragmentMovedToTop(fragment);
 
         jugglerView.postDelayed(() -> {
             int id = jugglerView.prepareBottomView();

@@ -79,9 +79,9 @@ public class JugglerView extends FrameLayout {
 
     private FrameLayout createFrameLayout() {
         FrameLayout frameLayout = new FrameLayout(getContext());
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT);
+        LayoutParams params = new LayoutParams(
+                LayoutParams.MATCH_PARENT,
+                LayoutParams.MATCH_PARENT);
         frameLayout.setLayoutParams(params);
         return frameLayout;
     }

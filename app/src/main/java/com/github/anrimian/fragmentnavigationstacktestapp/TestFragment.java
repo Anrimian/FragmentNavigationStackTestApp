@@ -12,12 +12,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
+import com.github.anrimian.fragmentnavigationstacktestapp.navigation.FragmentLayerListener;
 import com.github.anrimian.fragmentnavigationstacktestapp.navigation.FragmentNavigation;
-import com.github.anrimian.fragmentnavigationstacktestapp.navigation.FragmentVisibilityListener;
 
 import java.util.Random;
 
-public class TestFragment extends Fragment implements FragmentVisibilityListener {
+public class TestFragment extends Fragment implements FragmentLayerListener {
 
     private static final String ID = "id";
     private static final String COLOR = "color";
@@ -59,7 +59,7 @@ public class TestFragment extends Fragment implements FragmentVisibilityListener
     }
 
     @Override
-    public void onFragmentVisible() {
+    public void onFragmentMovedOnTop() {
         getActivity().setTitle("title: " + getArguments().getInt(ID));
     }
 
