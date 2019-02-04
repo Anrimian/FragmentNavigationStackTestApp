@@ -20,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
         JugglerView jugglerView = findViewById(R.id.juggler_view);
 
         navigation = FragmentNavigation.from(getSupportFragmentManager());
-        navigation.initialize(jugglerView);
+        navigation.initialize(jugglerView, savedInstanceState);
         navigation.addStackChangeListener(listener);
         navigation.setExitAnimation(R.anim.anim_slide_out_right);
         navigation.setEnterAnimation(R.anim.anim_slide_in_right);
@@ -36,6 +36,12 @@ public class MainActivity extends AppCompatActivity {
         if (!navigation.goBack()) {
             super.onBackPressed();
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        navigation.onSaveInstanceState(outState);
     }
 
     @Override

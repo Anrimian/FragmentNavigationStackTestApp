@@ -1,6 +1,7 @@
 package com.github.anrimian.fragmentnavigationstacktestapp.navigation;
 
 import android.content.res.Resources;
+import android.os.Bundle;
 import android.support.annotation.AnimRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -21,7 +22,6 @@ public class FragmentNavigation {
     private final LinkedList<FragmentCreator> fragments = new LinkedList<>();
     private final List<FragmentStackListener> stackListeners = new LinkedList<>();
 
-    private final JugglerViewPresenter jugglerViewPresenter = new JugglerViewPresenter();
     private JugglerView jugglerView;
 
     private boolean isNavigationEnabled = true;
@@ -48,13 +48,16 @@ public class FragmentNavigation {
         this.fragmentManagerProvider = fragmentManagerProvider;
     }
 
-    public void initialize(@NonNull JugglerView jugglerView) {
+    public void initialize(@NonNull JugglerView jugglerView, @Nullable Bundle savedState) {
         this.jugglerView = jugglerView;
-        jugglerView.setPresenter(jugglerViewPresenter);
-        jugglerViewPresenter.initializeView(jugglerView);
+        jugglerView.initialize(savedState);
 
         hideBottomFragmentMenu();
         notifyFragmentMovedToTop(getFragmentOnTop());
+    }
+
+    public void onSaveInstanceState(Bundle state) {
+        jugglerView.saveInstanceState(state);
     }
 
     public void addNewFragment(FragmentCreator fragmentCreator) {
@@ -128,7 +131,7 @@ public class FragmentNavigation {
         Fragment oldBottomFragment = getFragmentOnBottom();
         fragments.clear();
         fragments.add(fragmentCreator);
-        int topViewId = jugglerViewPresenter.getTopViewId();
+        int topViewId = jugglerView.getTopViewId();
         FragmentTransaction transaction = fragmentManagerProvider.getFragmentManager()
                 .beginTransaction();
         if (oldBottomFragment != null) {
@@ -240,13 +243,13 @@ public class FragmentNavigation {
     @Nullable
     public Fragment getFragmentOnTop() {
         return fragmentManagerProvider.getFragmentManager()
-                .findFragmentById(jugglerViewPresenter.getTopViewId());
+                .findFragmentById(jugglerView.getTopViewId());
     }
 
     @Nullable
     public Fragment getFragmentOnBottom() {
         return fragmentManagerProvider.getFragmentManager()
-                .findFragmentById(jugglerViewPresenter.getBottomViewId());
+                .findFragmentById(jugglerView.getBottomViewId());
     }
 
     private void notifyFragmentMovedToTop(Fragment fragment) {
@@ -315,7 +318,7 @@ public class FragmentNavigation {
         }
     }
 
-    private boolean equalClass(Object first, Object second) {
+    private boolean equalClass(@Nullable Object first, @NonNull Object second) {
         return (first != null && first.getClass().equals(second.getClass()));
     }
 }
