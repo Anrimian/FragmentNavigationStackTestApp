@@ -1,6 +1,6 @@
 package com.github.anrimian.fragmentnavigationstacktestapp;
 
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.Toast;
 
@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
         navigation.setEnterAnimation(R.anim.anim_slide_in_right);
         navigation.setRootExitAnimation(R.anim.anim_alpha_disappear);
 
-        if (savedInstanceState == null) {
+        if (!navigation.hasScreens()) {
             navigation.newRootFragment(() -> TestFragment.newInstance(0));
         }
     }
