@@ -84,7 +84,7 @@ public class TestFragment extends Fragment implements FragmentLayerListener {
             }
             case R.id.menu_test_root: {
                 FragmentNavigation.from(requireFragmentManager())
-                        .newRootFragment(() -> TestFragment.newInstance(0));
+                        .newRootFragment(TestFragment.newInstance(0));
             }
         }
         return false;
@@ -93,6 +93,6 @@ public class TestFragment extends Fragment implements FragmentLayerListener {
     private void onButtonClicked() {
         FragmentNavigation navigation = FragmentNavigation.from(requireFragmentManager());
         int fragmentsCount = navigation.getScreensCount();
-        navigation.addNewFragment(() -> TestFragment.newInstance(fragmentsCount));
+        navigation.addNewFragment(TestFragment.newInstance(fragmentsCount));
     }
 }

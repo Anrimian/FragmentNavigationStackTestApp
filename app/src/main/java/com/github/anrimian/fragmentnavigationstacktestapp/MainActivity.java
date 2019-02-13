@@ -1,6 +1,9 @@
 package com.github.anrimian.fragmentnavigationstacktestapp;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.content.Context;
 import android.os.Bundle;
 import android.widget.Toast;
 
@@ -27,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
         navigation.setRootExitAnimation(R.anim.anim_alpha_disappear);
 
         if (!navigation.hasScreens()) {
-            navigation.newRootFragment(() -> TestFragment.newInstance(0));
+            navigation.newRootFragment(TestFragment.newInstance(0));
         }
     }
 
@@ -39,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         navigation.onSaveInstanceState(outState);
     }
@@ -53,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private class StackChangeListenerImpl implements FragmentStackListener {
         @Override
         public void onStackChanged(int stackSize) {
-            Toast.makeText(MainActivity.this, "stack size: " + stackSize, Toast.LENGTH_SHORT).show();
+            Toast.makeText((Context) MainActivity.this, "stack size: " + stackSize, Toast.LENGTH_SHORT).show();
 
         }
     }
