@@ -17,19 +17,14 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-
-        if (BuildConfig.DEBUG) {
-            initAcra();
-        }
+        initAcra();
     }
 
     private void initAcra() {
         ConfigurationBuilder configurationBuilder = new ConfigurationBuilder(this);
-//        if (BuildConfig.DEBUG) {
-            configurationBuilder
-                    .setReportDialogClass(AcraReportDialog.class)
-                    .setReportingInteractionMode(ReportingInteractionMode.DIALOG);
-//        }
+        configurationBuilder
+                .setReportDialogClass(AcraReportDialog.class)
+                .setReportingInteractionMode(ReportingInteractionMode.DIALOG);
         ACRA.init(this, configurationBuilder);
     }
 }
