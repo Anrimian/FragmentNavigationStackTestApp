@@ -1,20 +1,28 @@
 package com.github.anrimian.fragmentnavigationstacktestapp.navigation;
 
-import android.content.Context;
 import android.os.Bundle;
+
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
 
 class FragmentMetaData {
+
+    private static final String CLASS_NAME = "class_name";
+    private static final String ARGUMENTS = "arguments";
 
     private final String fragmentClassName;
 
     @Nullable
     private final Bundle arguments;
 
-    static FragmentMetaData from(Fragment fragment) {
-        return new FragmentMetaData(fragment.getClass().getCanonicalName(), fragment.getArguments());
+    FragmentMetaData(Fragment fragment) {
+        fragmentClassName = fragment.getClass().getCanonicalName();
+        arguments = fragment.getArguments();
+    }
+
+    FragmentMetaData(Bundle bundle) {
+        fragmentClassName = bundle.getString(CLASS_NAME);
+        arguments = bundle.getBundle(ARGUMENTS);
     }
 
     private FragmentMetaData(String fragmentClassName, @Nullable Bundle arguments) {
@@ -29,5 +37,12 @@ class FragmentMetaData {
     @Nullable
     Bundle getArguments() {
         return arguments;
+    }
+
+    Bundle toBundle() {
+        Bundle bundle = new Bundle();
+        bundle.putString(CLASS_NAME, fragmentClassName);
+        bundle.putBundle(ARGUMENTS, arguments);
+        return bundle;
     }
 }

@@ -1,23 +1,25 @@
 package com.github.anrimian.fragmentnavigationstacktestapp.navigation;
 
-import android.content.Context;
 import android.content.res.Resources;
 import android.os.Bundle;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
 import androidx.annotation.AnimRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-
-import java.util.LinkedList;
-import java.util.List;
 
 public class FragmentNavigation {
 
     private static final String NAVIGATION_FRAGMENT_TAG = "navigation_fragment_tag";
+    private static final String SCREENS = "screens";
 
     private final FragmentManagerProvider fragmentManagerProvider;
     private final LinkedList<FragmentMetaData> fragments = new LinkedList<>();
@@ -53,12 +55,21 @@ public class FragmentNavigation {
         this.jugglerView = jugglerView;
         jugglerView.initialize(savedState);
 
-        hideBottomFragmentMenu();
-        notifyFragmentMovedToTop(getFragmentOnTop());
+        if (!fragments.isEmpty()) {//just orientation change
+            hideBottomFragmentMenu();
+            notifyFragmentMovedToTop(getFragmentOnTop());
+            return;
+        }
+        if (savedState != null) {
+            ArrayList<Bundle> bundleFragments = new ArrayList<>();
+            fragments.addAll(toMetaScreens(bundleFragments));
+        }
+        restoreFragmentStack();
     }
 
     public void onSaveInstanceState(Bundle state) {
         jugglerView.saveInstanceState(state);
+        state.putParcelableArrayList(SCREENS, getBundleScreens());
     }
 
     public void addNewFragment(Fragment fragment) {
@@ -66,6 +77,9 @@ public class FragmentNavigation {
     }
 
     //TODO create with exist stack feature
+    //TODO save screens stack
+    //TODO fragment changes class name on update? Same with arguments
+    //TODO lock screen on enter animation
 
     public void addNewFragment(Fragment fragment,
                                @AnimRes int enterAnimation) {
@@ -74,7 +88,7 @@ public class FragmentNavigation {
             return;
         }
         isNavigationEnabled = false;
-        fragments.add(FragmentMetaData.from(fragment));
+        fragments.add(new FragmentMetaData(fragment));
         int id = jugglerView.prepareTopView();
         fragmentManagerProvider.getFragmentManager()
                 .beginTransaction()
@@ -129,7 +143,7 @@ public class FragmentNavigation {
         isNavigationEnabled = false;
         Fragment oldBottomFragment = getFragmentOnBottom();
         fragments.clear();
-        fragments.add(FragmentMetaData.from(newRootFragment));
+        fragments.add(new FragmentMetaData(newRootFragment));
         int topViewId = jugglerView.getTopViewId();
         FragmentTransaction transaction = fragmentManagerProvider.getFragmentManager()
                 .beginTransaction();
@@ -176,7 +190,7 @@ public class FragmentNavigation {
                 .setCustomAnimations(0, exitAnimation)
                 .remove(fragmentOnTop)
                 .runOnCommit(() -> {
-                    replaceBottomFragment(exitAnimation);
+                    moveBottomFragmentToTop(exitAnimation);
                     notifyStackListeners();
                 })
                 .commit();
@@ -279,7 +293,42 @@ public class FragmentNavigation {
         }
     }
 
-    private void replaceBottomFragment(@AnimRes int exitAnimation) {
+    private void restoreFragmentStack() {
+        checkForInitialization();
+        if (!isNavigationEnabled) {
+            return;
+        }
+        if (fragments.isEmpty()) {
+            return;
+        }
+        isNavigationEnabled = false;
+        FragmentMetaData topFragment = fragments.getLast();
+
+        fragmentManagerProvider.getFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(rootEnterAnimation, 0)
+                .replace(jugglerView.getTopViewId(), createFragment(topFragment))
+                .runOnCommit(() -> {
+                    isNavigationEnabled = true;
+                    notifyStackListeners();
+                    notifyFragmentMovedToTop(getFragmentOnTop());
+
+                    //..
+                    if (fragments.size() > 1) {
+                        FragmentMetaData bottomFragment = fragments.get(fragments.size() - 2);
+                        fragmentManagerProvider.getFragmentManager()
+                                .beginTransaction()
+                                .replace(jugglerView.getBottomViewId(), createFragment(bottomFragment))
+                                .runOnCommit(this::hideBottomFragmentMenu)
+                                .commit();
+                    }
+
+                    //..
+                })
+                .commit();
+    }
+
+    private void moveBottomFragmentToTop(@AnimRes int exitAnimation) {
         Fragment fragment = requireFragmentAtBottom();
         fragment.setMenuVisibility(true);
         notifyFragmentMovedToTop(fragment);
@@ -342,6 +391,22 @@ public class FragmentNavigation {
                         metaData.getFragmentClassName(),
                         metaData.getArguments()
                 );
+    }
+
+    private ArrayList<Bundle> getBundleScreens() {
+        ArrayList<Bundle> screens = new ArrayList<>(fragments.size());
+        for (FragmentMetaData metaData: fragments) {
+            screens.add(metaData.toBundle());
+        }
+        return screens;
+    }
+
+    private LinkedList<FragmentMetaData> toMetaScreens(List<Bundle> bundles) {
+        LinkedList<FragmentMetaData> fragments = new LinkedList<>();
+        for (Bundle bundle: bundles) {
+            fragments.add(new FragmentMetaData(bundle));
+        }
+        return fragments;
     }
 
     private boolean equalClass(@Nullable Object first, @NonNull Object second) {
