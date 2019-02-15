@@ -2,8 +2,6 @@ package com.github.anrimian.fragmentnavigationstacktestapp;
 
 import android.graphics.Color;
 import android.os.Bundle;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -15,7 +13,12 @@ import android.widget.Button;
 import com.github.anrimian.fragmentnavigationstacktestapp.navigation.FragmentLayerListener;
 import com.github.anrimian.fragmentnavigationstacktestapp.navigation.FragmentNavigation;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 
 public class TestFragment extends Fragment implements FragmentLayerListener {
 
@@ -53,6 +56,9 @@ public class TestFragment extends Fragment implements FragmentLayerListener {
         button = view.findViewById(R.id.button);
         button.setText(String.valueOf(getArguments().getInt(ID)));
         button.setOnClickListener(v -> onButtonClicked());
+
+        Button buttonAddScreens = view.findViewById(R.id.button2);
+        buttonAddScreens.setOnClickListener(v -> onAddScreenButtonClicked());
 
         View container = view.findViewById(R.id.container);
         container.setBackgroundColor(getArguments().getInt(COLOR));
@@ -94,5 +100,19 @@ public class TestFragment extends Fragment implements FragmentLayerListener {
         FragmentNavigation navigation = FragmentNavigation.from(requireFragmentManager());
         int fragmentsCount = navigation.getScreensCount();
         navigation.addNewFragment(TestFragment.newInstance(fragmentsCount));
+    }
+
+    private void onAddScreenButtonClicked() {
+        FragmentNavigation navigation = FragmentNavigation.from(requireFragmentManager());
+        int fragmentsCount = navigation.getScreensCount();
+        List<Fragment> fragments = new ArrayList<>();
+        fragments.add(TestFragment.newInstance(fragmentsCount));
+        fragments.add(TestFragment.newInstance(fragmentsCount+1));
+        fragments.add(TestFragment.newInstance(fragmentsCount+2));
+        fragments.add(TestFragment.newInstance(fragmentsCount+3));
+        fragments.add(TestFragment.newInstance(fragmentsCount+4));
+
+        navigation.addNewFragmentStack(fragments);
+
     }
 }

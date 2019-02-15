@@ -16,13 +16,15 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import static com.github.anrimian.fragmentnavigationstacktestapp.navigation.utils.ListUtils.mapList;
+
 public class FragmentNavigation {
 
     private static final String NAVIGATION_FRAGMENT_TAG = "navigation_fragment_tag";
     private static final String SCREENS = "screens";
 
     private final FragmentManagerProvider fragmentManagerProvider;
-    private final LinkedList<FragmentMetaData> fragments = new LinkedList<>();
+    private final LinkedList<FragmentMetaData> screens = new LinkedList<>();
     private final List<FragmentStackListener> stackListeners = new LinkedList<>();
 
     private JugglerView jugglerView;
@@ -55,16 +57,16 @@ public class FragmentNavigation {
         this.jugglerView = jugglerView;
         jugglerView.initialize(savedState);
 
-        if (!fragments.isEmpty()) {//just orientation change
+        if (!screens.isEmpty()) {//just orientation change
             hideBottomFragmentMenu();
             notifyFragmentMovedToTop(getFragmentOnTop());
             return;
         }
         if (savedState != null) {
             ArrayList<Bundle> bundleFragments = new ArrayList<>();
-            fragments.addAll(toMetaScreens(bundleFragments));
+            screens.addAll(mapList(bundleFragments, FragmentMetaData::new));
+            restoreFragmentStack();
         }
-        restoreFragmentStack();
     }
 
     public void onSaveInstanceState(Bundle state) {
@@ -72,14 +74,51 @@ public class FragmentNavigation {
         state.putParcelableArrayList(SCREENS, getBundleScreens());
     }
 
+    //TODO save screens stack
+    //TODO fragment changes class name on update? Same with arguments
+
+    public void addNewFragmentStack(List<Fragment> fragments) {
+        addNewFragmentStack(fragments, enterAnimation);
+    }
+
+    public void addNewFragmentStack(List<Fragment> fragments, @AnimRes int enterAnimation) {
+        checkForInitialization();
+        if (!isNavigationEnabled) {
+            return;
+        }
+        if (fragments.isEmpty()) {
+            return;
+        }
+        isNavigationEnabled = false;
+        screens.addAll(mapList(fragments, FragmentMetaData::new));
+        int id = jugglerView.prepareTopView();
+        fragmentManagerProvider.getFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(enterAnimation, 0)
+                .replace(id, fragments.get(fragments.size() - 1))
+                .runOnCommit(() -> {
+                    hideBottomFragmentMenu();
+                    notifyStackListeners();
+                    notifyFragmentMovedToTop(getFragmentOnTop());
+
+                    jugglerView.postDelayed(
+                            () -> {
+                                if (fragments.size() > 1) {
+                                    silentlyReplaceBottomFragment();
+                                }
+                                isNavigationEnabled = true;
+                            },
+                            getAnimationDuration(enterAnimation)
+                    );
+
+                })
+                .commit();
+
+    }
+
     public void addNewFragment(Fragment fragment) {
         addNewFragment(fragment, enterAnimation);
     }
-
-    //TODO create with exist stack feature
-    //TODO save screens stack
-    //TODO fragment changes class name on update? Same with arguments
-    //TODO lock screen on enter animation
 
     public void addNewFragment(Fragment fragment,
                                @AnimRes int enterAnimation) {
@@ -88,17 +127,20 @@ public class FragmentNavigation {
             return;
         }
         isNavigationEnabled = false;
-        fragments.add(new FragmentMetaData(fragment));
+        screens.add(new FragmentMetaData(fragment));
         int id = jugglerView.prepareTopView();
         fragmentManagerProvider.getFragmentManager()
                 .beginTransaction()
                 .setCustomAnimations(enterAnimation, 0)
                 .replace(id, fragment)
                 .runOnCommit(() -> {
-                    isNavigationEnabled = true;
                     hideBottomFragmentMenu();
                     notifyStackListeners();
                     notifyFragmentMovedToTop(getFragmentOnTop());
+                    jugglerView.postDelayed(
+                            () -> isNavigationEnabled = true,
+                            getAnimationDuration(enterAnimation)
+                    );
                 })
                 .commit();
     }
@@ -142,8 +184,8 @@ public class FragmentNavigation {
 
         isNavigationEnabled = false;
         Fragment oldBottomFragment = getFragmentOnBottom();
-        fragments.clear();
-        fragments.add(new FragmentMetaData(newRootFragment));
+        screens.clear();
+        screens.add(new FragmentMetaData(newRootFragment));
         int topViewId = jugglerView.getTopViewId();
         FragmentTransaction transaction = fragmentManagerProvider.getFragmentManager()
                 .beginTransaction();
@@ -156,9 +198,12 @@ public class FragmentNavigation {
         transaction.setCustomAnimations(enterAnimation, exitAnimation)
                 .replace(topViewId, newRootFragment)
                 .runOnCommit(() -> {
-                    isNavigationEnabled = true;
                     notifyStackListeners();
                     notifyFragmentMovedToTop(getFragmentOnTop());
+                    jugglerView.postDelayed(
+                            () -> isNavigationEnabled = true,
+                            getAnimationDuration(enterAnimation)
+                    );
                 })
                 .commit();
     }
@@ -173,7 +218,7 @@ public class FragmentNavigation {
      */
     public boolean goBack(@AnimRes int exitAnimation) {
         checkForInitialization();
-        if (fragments.size() <= 1) {
+        if (screens.size() <= 1) {
             return false;
         }
         if (!isNavigationEnabled) {
@@ -184,7 +229,7 @@ public class FragmentNavigation {
             return false;
         }
         isNavigationEnabled = false;
-        fragments.removeLast();
+        screens.removeLast();
         fragmentManagerProvider.getFragmentManager()
                 .beginTransaction()
                 .setCustomAnimations(0, exitAnimation)
@@ -199,17 +244,17 @@ public class FragmentNavigation {
 
     public void clearRootFragment(@AnimRes int exitAnimation) {
         checkForInitialization();
-        if (fragments.size() < 1) {
+        if (screens.size() < 1) {
             return;
         }
-        if (fragments.size() > 1) {
+        if (screens.size() > 1) {
             throw new IllegalStateException("can not clear: fragment is not root");
         }
         Fragment fragmentOnTop = getFragmentOnTop();
         if (fragmentOnTop == null) {
             return;
         }
-        fragments.removeLast();
+        screens.removeLast();
         fragmentManagerProvider.getFragmentManager()
                 .beginTransaction()
                 .setCustomAnimations(0, exitAnimation)
@@ -257,16 +302,16 @@ public class FragmentNavigation {
     }
 
     public int getScreensCount() {
-        return fragments.size();
+        return screens.size();
     }
 
     public int getStackScreensCount() {
-        int count = fragments.size() - 1;
+        int count = screens.size() - 1;
         return count < 0? 0: count;
     }
 
     public boolean hasScreens() {
-        return !fragments.isEmpty();
+        return !screens.isEmpty();
     }
 
     @Nullable
@@ -298,11 +343,11 @@ public class FragmentNavigation {
         if (!isNavigationEnabled) {
             return;
         }
-        if (fragments.isEmpty()) {
+        if (screens.isEmpty()) {
             return;
         }
         isNavigationEnabled = false;
-        FragmentMetaData topFragment = fragments.getLast();
+        FragmentMetaData topFragment = screens.getLast();
 
         fragmentManagerProvider.getFragmentManager()
                 .beginTransaction()
@@ -312,20 +357,20 @@ public class FragmentNavigation {
                     isNavigationEnabled = true;
                     notifyStackListeners();
                     notifyFragmentMovedToTop(getFragmentOnTop());
-
-                    //..
-                    if (fragments.size() > 1) {
-                        FragmentMetaData bottomFragment = fragments.get(fragments.size() - 2);
-                        fragmentManagerProvider.getFragmentManager()
-                                .beginTransaction()
-                                .replace(jugglerView.getBottomViewId(), createFragment(bottomFragment))
-                                .runOnCommit(this::hideBottomFragmentMenu)
-                                .commit();
-                    }
-
-                    //..
+                    silentlyReplaceBottomFragment();
                 })
                 .commit();
+    }
+
+    private void silentlyReplaceBottomFragment() {
+        if (screens.size() > 1) {
+            FragmentMetaData bottomFragment = screens.get(screens.size() - 2);
+            fragmentManagerProvider.getFragmentManager()
+                    .beginTransaction()
+                    .replace(jugglerView.getBottomViewId(), createFragment(bottomFragment))
+                    .runOnCommit(this::hideBottomFragmentMenu)
+                    .commit();
+        }
     }
 
     private void moveBottomFragmentToTop(@AnimRes int exitAnimation) {
@@ -335,8 +380,8 @@ public class FragmentNavigation {
 
         jugglerView.postDelayed(() -> {
             int id = jugglerView.prepareBottomView();
-            if (fragments.size() > 1) {
-                FragmentMetaData metaData = fragments.get(fragments.size() - 2);
+            if (screens.size() > 1) {
+                FragmentMetaData metaData = screens.get(screens.size() - 2);
                 Fragment bottomFragment = createFragment(metaData);
                 bottomFragment.setMenuVisibility(false);
                 fragmentManagerProvider.getFragmentManager()
@@ -383,7 +428,6 @@ public class FragmentNavigation {
         }
     }
 
-
     private Fragment createFragment(FragmentMetaData metaData) {
         return fragmentManagerProvider.getFragmentManager()
                 .getFragmentFactory()
@@ -394,19 +438,11 @@ public class FragmentNavigation {
     }
 
     private ArrayList<Bundle> getBundleScreens() {
-        ArrayList<Bundle> screens = new ArrayList<>(fragments.size());
-        for (FragmentMetaData metaData: fragments) {
+        ArrayList<Bundle> screens = new ArrayList<>(this.screens.size());
+        for (FragmentMetaData metaData: this.screens) {
             screens.add(metaData.toBundle());
         }
         return screens;
-    }
-
-    private LinkedList<FragmentMetaData> toMetaScreens(List<Bundle> bundles) {
-        LinkedList<FragmentMetaData> fragments = new LinkedList<>();
-        for (Bundle bundle: bundles) {
-            fragments.add(new FragmentMetaData(bundle));
-        }
-        return fragments;
     }
 
     private boolean equalClass(@Nullable Object first, @NonNull Object second) {
