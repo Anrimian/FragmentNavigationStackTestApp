@@ -60,6 +60,9 @@ public class TestFragment extends Fragment implements FragmentLayerListener {
         Button buttonAddScreens = view.findViewById(R.id.button2);
         buttonAddScreens.setOnClickListener(v -> onAddScreenButtonClicked());
 
+        Button buttonAddRootScreens = view.findViewById(R.id.button3);
+        buttonAddRootScreens.setOnClickListener(v -> onAddRootScreensButtonClicked());
+
         View container = view.findViewById(R.id.container);
         container.setBackgroundColor(getArguments().getInt(COLOR));
     }
@@ -113,6 +116,17 @@ public class TestFragment extends Fragment implements FragmentLayerListener {
         fragments.add(TestFragment.newInstance(fragmentsCount+4));
 
         navigation.addNewFragmentStack(fragments);
+
+    }
+
+    private void onAddRootScreensButtonClicked() {
+        FragmentNavigation navigation = FragmentNavigation.from(requireFragmentManager());
+        List<Fragment> fragments = new ArrayList<>();
+        fragments.add(TestFragment.newInstance(0));
+        fragments.add(TestFragment.newInstance(1));
+        fragments.add(TestFragment.newInstance(2));
+
+        navigation.newRootFragmentStack(fragments);
 
     }
 }
