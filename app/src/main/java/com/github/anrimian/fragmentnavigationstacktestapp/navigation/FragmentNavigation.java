@@ -388,28 +388,31 @@ public class FragmentNavigation {
         }
     }
 
-    private void restoreFragmentStack() {
-        checkForInitialization();
-        if (!isNavigationEnabled) {
-            return;
-        }
-        if (screens.isEmpty()) {
-            return;
-        }
-        isNavigationEnabled = false;
-        FragmentMetaData topFragment = screens.getLast();
+    private void restoreFragmentStack() {//observe if we really don't need it
+        notifyFragmentMovedToTop(getFragmentOnTop());
 
-        fragmentManagerProvider.getFragmentManager()
-                .beginTransaction()
-                .setCustomAnimations(rootEnterAnimation, 0)
-                .replace(jugglerView.getTopViewId(), createFragment(topFragment))
-                .runOnCommit(() -> {
-                    isNavigationEnabled = true;
-                    notifyStackListeners();
-                    notifyFragmentMovedToTop(getFragmentOnTop());
-                    silentlyReplaceBottomFragment();
-                })
-                .commit();
+//        checkForInitialization();
+//        if (!isNavigationEnabled) {
+//            return;
+//        }
+//        if (screens.isEmpty()) {
+//            return;
+//        }
+//        isNavigationEnabled = false;
+//        FragmentMetaData topFragment = screens.getLast();
+
+
+//        fragmentManagerProvider.getFragmentManager()
+//                .beginTransaction()
+//                .setCustomAnimations(rootEnterAnimation, 0)
+//                .replace(jugglerView.getTopViewId(), createFragment(topFragment))
+//                .runOnCommit(() -> {
+//                    isNavigationEnabled = true;
+//                    notifyStackListeners();
+//                    notifyFragmentMovedToTop(getFragmentOnTop());
+//                    silentlyReplaceBottomFragment();
+//                })
+//                .commit();
     }
 
     private void silentlyReplaceBottomFragment() {
