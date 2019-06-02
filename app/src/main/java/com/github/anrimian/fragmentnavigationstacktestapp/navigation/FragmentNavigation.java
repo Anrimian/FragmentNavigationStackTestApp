@@ -5,15 +5,15 @@ import android.os.Bundle;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-
 import androidx.annotation.AnimRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
+
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 import static com.github.anrimian.fragmentnavigationstacktestapp.navigation.utils.ListUtils.mapList;
 
@@ -57,7 +57,7 @@ public class FragmentNavigation {
         jugglerView.initialize(savedState);
 
         if (!screens.isEmpty()) {//just orientation change
-            hideBottomFragmentMenu();
+            hideBottomFragmentMenu();//check
             notifyFragmentMovedToTop(getFragmentOnTop());
             return;
         }
