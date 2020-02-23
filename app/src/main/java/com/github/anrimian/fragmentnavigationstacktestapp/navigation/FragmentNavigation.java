@@ -2,11 +2,13 @@ package com.github.anrimian.fragmentnavigationstacktestapp.navigation;
 
 import android.content.res.Resources;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 
 import androidx.annotation.AnimRes;
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -26,22 +28,21 @@ public class FragmentNavigation {
     private final LinkedList<FragmentMetaData> screens = new LinkedList<>();
     private final List<FragmentStackListener> stackListeners = new LinkedList<>();
 
-    private JugglerView jugglerView;
+    private final Handler actionHandler = new Handler(Looper.getMainLooper());
 
-    private boolean isNavigationEnabled = true;
+    private JugglerView jugglerView;
 
     private boolean checkOnEqualityOnReplace = false;
 
-    @AnimRes
-    private int enterAnimation = 0;
-    @AnimRes
-    private int exitAnimation = 0;
-    @AnimRes
-    private int rootEnterAnimation = 0;
-    @AnimRes
-    private int rootExitAnimation = 0;
+    @AnimRes private int enterAnimation = 0;
+    @AnimRes private int exitAnimation = 0;
+    @AnimRes private int rootEnterAnimation = 0;
+    @AnimRes private int rootExitAnimation = 0;
 
     private boolean isVisible = true;
+
+    @Nullable
+    private Runnable bottomFragmentRunnable;
 
     public static FragmentNavigation from(FragmentManager fm) {
         NavigationFragment container = (NavigationFragment) fm.findFragmentByTag(NAVIGATION_FRAGMENT_TAG);
@@ -58,7 +59,7 @@ public class FragmentNavigation {
         this.fragmentManagerProvider = fragmentManagerProvider;
     }
 
-    public void initialize(@NonNull JugglerView jugglerView, @Nullable Bundle savedState) {
+    public void initialize(@androidx.annotation.NonNull JugglerView jugglerView, @Nullable Bundle savedState) {
         this.jugglerView = jugglerView;
         jugglerView.initialize(savedState);
 
@@ -95,9 +96,6 @@ public class FragmentNavigation {
                                      @AnimRes int exitAnimation,
                                      @AnimRes int enterAnimation) {
         checkForInitialization();
-        if (!isNavigationEnabled) {
-            return;
-        }
         if (fragments.isEmpty()) {
             return;
         }
@@ -106,35 +104,29 @@ public class FragmentNavigation {
             return;
         }
 
-        isNavigationEnabled = false;
-        screens.clear();
-        screens.addAll(mapList(fragments, FragmentMetaData::new));
-        int id = jugglerView.getTopViewId();
+        actionHandler.post(() -> {
+            screens.clear();
+            screens.addAll(mapList(fragments, FragmentMetaData::new));
+            int id = jugglerView.getTopViewId();
 
-        Fragment fragment = fragments.get(fragments.size() - 1);
-        fragment.setMenuVisibility(isVisible);
-        fragmentManagerProvider.getFragmentManager()
-                .beginTransaction()
-                .setCustomAnimations(enterAnimation, exitAnimation)
-                .replace(id, fragment)
-                .runOnCommit(() -> {
-                    hideBottomFragmentMenu();
-                    notifyStackListeners();
-                    notifyFragmentMovedToTop(getFragmentOnTop());
+            Fragment fragment = fragments.get(fragments.size() - 1);
+            fragment.setMenuVisibility(isVisible);
+            fragmentManagerProvider.getFragmentManager()
+                    .beginTransaction()
+                    .setCustomAnimations(enterAnimation, exitAnimation)
+                    .replace(id, fragment)
+                    .runOnCommit(() -> {
+                        hideBottomFragmentMenu();
+                        notifyStackListeners();
+                        notifyFragmentMovedToTop(getFragmentOnTop());
 
-                    jugglerView.postDelayed(
-                            () -> {
-                                if (fragments.size() > 1) {
-                                    silentlyReplaceBottomFragment();
-                                }
-                                isNavigationEnabled = true;
-                            },
-                            getAnimationDuration(enterAnimation)
-                    );
+                        if (fragments.size() > 1) {
+                            scheduleBottomFragmentReplacing(getAnimationDuration(enterAnimation));
+                        }
 
-                })
-                .commit();
-
+                    })
+                    .commit();
+        });
     }
 
     public void addNewFragmentStack(List<Fragment> fragments) {
@@ -143,9 +135,6 @@ public class FragmentNavigation {
 
     public void addNewFragmentStack(List<Fragment> fragments, @AnimRes int enterAnimation) {
         checkForInitialization();
-        if (!isNavigationEnabled) {
-            return;
-        }
         if (fragments.isEmpty()) {
             return;
         }
@@ -153,34 +142,28 @@ public class FragmentNavigation {
             addNewFragment(fragments.get(0), enterAnimation);
             return;
         }
-        isNavigationEnabled = false;
-        screens.addAll(mapList(fragments, FragmentMetaData::new));
-        int id = jugglerView.prepareTopView();
+        actionHandler.post(() -> {
+            screens.addAll(mapList(fragments, FragmentMetaData::new));
+            int id = jugglerView.prepareTopView();
 
-        Fragment fragment = fragments.get(fragments.size() - 1);
-        fragment.setMenuVisibility(isVisible);
-        fragmentManagerProvider.getFragmentManager()
-                .beginTransaction()
-                .setCustomAnimations(enterAnimation, 0)
-                .replace(id, fragment)
-                .runOnCommit(() -> {
-                    hideBottomFragmentMenu();
-                    notifyStackListeners();
-                    notifyFragmentMovedToTop(getFragmentOnTop());
+            Fragment fragment = fragments.get(fragments.size() - 1);
+            fragment.setMenuVisibility(isVisible);
+            fragmentManagerProvider.getFragmentManager()
+                    .beginTransaction()
+                    .setCustomAnimations(enterAnimation, 0)
+                    .replace(id, fragment)
+                    .runOnCommit(() -> {
+                        hideBottomFragmentMenu();
+                        notifyStackListeners();
+                        notifyFragmentMovedToTop(getFragmentOnTop());
 
-                    jugglerView.postDelayed(
-                            () -> {
-                                if (fragments.size() > 1) {
-                                    silentlyReplaceBottomFragment();
-                                }
-                                isNavigationEnabled = true;
-                            },
-                            getAnimationDuration(enterAnimation)
-                    );
+                        if (fragments.size() > 1) {
+                            scheduleBottomFragmentReplacing(getAnimationDuration(enterAnimation));
+                        }
 
-                })
-                .commit();
-
+                    })
+                    .commit();
+        });
     }
 
     public void addNewFragment(Fragment fragment) {
@@ -190,27 +173,21 @@ public class FragmentNavigation {
     public void addNewFragment(Fragment fragment,
                                @AnimRes int enterAnimation) {
         checkForInitialization();
-        if (!isNavigationEnabled) {
-            return;
-        }
-        isNavigationEnabled = false;
-        screens.add(new FragmentMetaData(fragment));
-        int id = jugglerView.prepareTopView();
-        fragment.setMenuVisibility(isVisible);
-        fragmentManagerProvider.getFragmentManager()
-                .beginTransaction()
-                .setCustomAnimations(enterAnimation, 0)
-                .replace(id, fragment)
-                .runOnCommit(() -> {
-                    hideBottomFragmentMenu();
-                    notifyStackListeners();
-                    notifyFragmentMovedToTop(getFragmentOnTop());
-                    jugglerView.postDelayed(
-                            () -> isNavigationEnabled = true,
-                            getAnimationDuration(enterAnimation)
-                    );
-                })
-                .commit();
+        actionHandler.post(() -> {
+            screens.add(new FragmentMetaData(fragment));
+            int id = jugglerView.prepareTopView();
+            fragment.setMenuVisibility(isVisible);
+            fragmentManagerProvider.getFragmentManager()
+                    .beginTransaction()
+                    .setCustomAnimations(enterAnimation, 0)
+                    .replace(id, fragment)
+                    .runOnCommit(() -> {
+                        hideBottomFragmentMenu();
+                        notifyStackListeners();
+                        notifyFragmentMovedToTop(getFragmentOnTop());
+                    })
+                    .commit();
+        });
     }
 
     public void newRootFragment(Fragment fragment) {
@@ -242,35 +219,27 @@ public class FragmentNavigation {
                                 @AnimRes int exitAnimation,
                                 @AnimRes int enterAnimation) {
         checkForInitialization();
-        if (!isNavigationEnabled) {
-            return;
-        }
         Fragment oldRootFragment = getFragmentOnTop();
         if (checkForEquality && equalClass(oldRootFragment, newRootFragment)) {
             return;
         }
 
-        isNavigationEnabled = false;
-        screens.clear();
-        screens.add(new FragmentMetaData(newRootFragment));
-        int topViewId = jugglerView.getTopViewId();
-        newRootFragment.setMenuVisibility(isVisible);
-        fragmentManagerProvider.getFragmentManager()
-                .beginTransaction()
-                .setCustomAnimations(enterAnimation, exitAnimation)
-                .replace(topViewId, newRootFragment)
-                .runOnCommit(() -> {
-                    notifyStackListeners();
-                    notifyFragmentMovedToTop(getFragmentOnTop());
-                    jugglerView.postDelayed(
-                            () -> {
-                                silentlyClearBottomFragment();
-                                isNavigationEnabled = true;
-                            },
-                            getAnimationDuration(enterAnimation)
-                    );
-                })
-                .commit();
+        actionHandler.post(() -> {
+            screens.clear();
+            screens.add(new FragmentMetaData(newRootFragment));
+            int topViewId = jugglerView.getTopViewId();
+            newRootFragment.setMenuVisibility(isVisible);
+            fragmentManagerProvider.getFragmentManager()
+                    .beginTransaction()
+                    .setCustomAnimations(enterAnimation, exitAnimation)
+                    .replace(topViewId, newRootFragment)
+                    .runOnCommit(() -> {
+                        notifyStackListeners();
+                        notifyFragmentMovedToTop(getFragmentOnTop());
+                        scheduleBottomFragmentClearing(getAnimationDuration(enterAnimation));
+                    })
+                    .commit();
+        });
     }
 
     public boolean goBack() {
@@ -281,29 +250,39 @@ public class FragmentNavigation {
      *
      * @return if back accepted or not
      */
+    //problem with often call
     public boolean goBack(@AnimRes int exitAnimation) {
         checkForInitialization();
         if (screens.size() <= 1) {
             return false;
         }
-        if (!isNavigationEnabled) {
-            return true;
-        }
-        Fragment fragmentOnTop = getFragmentOnTop();
-        if (fragmentOnTop == null) {
-            return false;
-        }
-        isNavigationEnabled = false;
-        screens.removeLast();
-        fragmentManagerProvider.getFragmentManager()
-                .beginTransaction()
-                .setCustomAnimations(0, exitAnimation)
-                .remove(fragmentOnTop)
-                .runOnCommit(() -> {
-                    moveBottomFragmentToTop(exitAnimation);
-                    notifyStackListeners();
-                })
-                .commit();
+        Log.d("KEK", "schedule goBack");
+
+
+        actionHandler.post(() -> {
+            Fragment fragmentOnTop = getFragmentOnTop();
+            if (fragmentOnTop == null) {
+                Log.d("KEK", "goBack skipped, fragment on top null: ");
+                return;
+            }
+            Log.d("KEK", "run goBack");
+
+            screens.removeLast();
+            fragmentManagerProvider.getFragmentManager()
+                    .beginTransaction()
+                    .setCustomAnimations(0, exitAnimation)
+                    .remove(fragmentOnTop)
+                    .runOnCommit(() -> {
+                        Fragment fragment = getFragmentOnBottom();
+                        if (fragment != null) {
+                            fragment.setMenuVisibility(true);
+                            notifyFragmentMovedToTop(fragment);
+                        }
+                        notifyStackListeners();
+                        scheduleBottomFragmentToTopMoving(getAnimationDuration(exitAnimation));
+                    })
+                    .commit();
+        });
         return true;
     }
 
@@ -387,8 +366,11 @@ public class FragmentNavigation {
 
     @Nullable
     public Fragment getFragmentOnBottom() {
-        return fragmentManagerProvider.getFragmentManager()
-                .findFragmentById(jugglerView.getBottomViewId());
+        FragmentManager fm = fragmentManagerProvider.getFragmentManager();
+        if (fm == null) {
+            return null;
+        }
+        return fm.findFragmentById(jugglerView.getBottomViewId());
     }
 
     public boolean isVisible() {
@@ -415,6 +397,14 @@ public class FragmentNavigation {
         }
     }
 
+    private void scheduleBottomFragmentReplacing(long delay) {
+        if (bottomFragmentRunnable != null) {
+            actionHandler.removeCallbacks(bottomFragmentRunnable);
+        }
+        bottomFragmentRunnable = this::silentlyReplaceBottomFragment;
+        actionHandler.postDelayed(bottomFragmentRunnable, delay);
+    }
+
     private void silentlyReplaceBottomFragment() {
         if (screens.size() > 1) {
             FragmentMetaData bottomFragment = screens.get(screens.size() - 2);
@@ -430,6 +420,14 @@ public class FragmentNavigation {
         }
     }
 
+    private void scheduleBottomFragmentClearing(long delay) {
+        if (bottomFragmentRunnable != null) {
+            actionHandler.removeCallbacks(bottomFragmentRunnable);
+        }
+        bottomFragmentRunnable = this::silentlyClearBottomFragment;
+        actionHandler.postDelayed(bottomFragmentRunnable, delay);
+    }
+
     private void silentlyClearBottomFragment() {
         Fragment fragment = getFragmentOnBottom();
         if (fragment != null) {
@@ -437,38 +435,29 @@ public class FragmentNavigation {
                     .beginTransaction()
                     .remove(fragment)
                     .runOnCommit(() -> fragment.setMenuVisibility(false))
-                    .commit();
+                    .commitAllowingStateLoss();
         }
     }
 
-    private void moveBottomFragmentToTop(@AnimRes int exitAnimation) {
-        Fragment fragment = requireFragmentAtBottom();
-        fragment.setMenuVisibility(true);
-        notifyFragmentMovedToTop(fragment);
-
-        jugglerView.postDelayed(() -> {
-            int id = jugglerView.prepareBottomView();
-            if (screens.size() > 1) {
-                FragmentMetaData metaData = screens.get(screens.size() - 2);
-                Fragment bottomFragment = createFragment(metaData);
-                bottomFragment.setMenuVisibility(false);
-                fragmentManagerProvider.getFragmentManager()
-                        .beginTransaction()
-                        .replace(id, bottomFragment)
-                        .runOnCommit(() -> isNavigationEnabled = true)
-                        .commit();
-            } else {
-                isNavigationEnabled = true;
-            }
-        }, getAnimationDuration(exitAnimation));
+    private void scheduleBottomFragmentToTopMoving(long delay) {
+//        if (bottomFragmentRunnable != null) {
+//            actionHandler.removeCallbacks(bottomFragmentRunnable);
+//        }
+//        bottomFragmentRunnable = this::moveBottomFragmentToTop;
+        actionHandler.postDelayed(this::moveBottomFragmentToTop, delay);
     }
 
-    private Fragment requireFragmentAtBottom() {
-        Fragment fragment = getFragmentOnBottom();
-        if (fragment == null) {
-            throw new NullPointerException("required fragment from bottom is null");
+    private void moveBottomFragmentToTop() {
+        int id = jugglerView.prepareBottomView();
+        if (screens.size() > 1) {
+            FragmentMetaData metaData = screens.get(screens.size() - 2);
+            Fragment bottomFragment = createFragment(metaData);//can be null here
+            bottomFragment.setMenuVisibility(false);
+            fragmentManagerProvider.getFragmentManager()
+                    .beginTransaction()
+                    .replace(id, bottomFragment)
+                    .commitAllowingStateLoss();
         }
-        return fragment;
     }
 
     private void hideBottomFragmentMenu() {
@@ -497,7 +486,7 @@ public class FragmentNavigation {
     }
 
     private Fragment createFragment(FragmentMetaData metaData) {
-        return fragmentManagerProvider.getFragmentManager()
+        return fragmentManagerProvider.getFragmentManager()//can be null?
                 .getFragmentFactory()
                 .instantiate(jugglerView.getContext().getClassLoader(),
                         metaData.getFragmentClassName(),
@@ -513,7 +502,7 @@ public class FragmentNavigation {
         return screens;
     }
 
-    private boolean equalClass(@Nullable Object first, @NonNull Object second) {
+    private boolean equalClass(@Nullable Object first, @androidx.annotation.NonNull Object second) {
         return (first != null && first.getClass().equals(second.getClass()));
     }
 }
