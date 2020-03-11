@@ -8,6 +8,8 @@ import org.acra.ACRA;
 import org.acra.ReportingInteractionMode;
 import org.acra.config.ConfigurationBuilder;
 
+import ch.acra.acra.BuildConfig;
+
 /**
  * Created on 20.10.2017.
  */
@@ -17,14 +19,8 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        initAcra();
-    }
-
-    private void initAcra() {
-        ConfigurationBuilder configurationBuilder = new ConfigurationBuilder(this);
-        configurationBuilder
-                .setReportDialogClass(AcraReportDialog.class)
-                .setReportingInteractionMode(ReportingInteractionMode.DIALOG);
-        ACRA.init(this, configurationBuilder);
+        if (BuildConfig.DEBUG) {
+            AcraReportDialog.setupCrashDialog(this);
+        }
     }
 }
