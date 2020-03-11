@@ -246,11 +246,14 @@ public class FragmentNavigation {
         return goBack(exitAnimation);
     }
 
+//    private final Object backLock = new Object();
+
     /**
      *
      * @return if back accepted or not
      */
     //problem with often call
+    //install app in bg, unlock device - crash
     public boolean goBack(@AnimRes int exitAnimation) {
         checkForInitialization();
         if (screens.size() <= 1) {
@@ -260,12 +263,14 @@ public class FragmentNavigation {
 
 
         actionHandler.post(() -> {
+//            synchronized (backLock) {
+//            jugglerView.getTopViewId();
             Fragment fragmentOnTop = getFragmentOnTop();
             if (fragmentOnTop == null) {
                 Log.d("KEK", "goBack skipped, fragment on top null: ");
                 return;
             }
-            Log.d("KEK", "run goBack");
+            Log.d("KEK", "run goBack to, index: " + (screens.size() - 2) + ", top view id: " + jugglerView.getTopViewId());
 
             screens.removeLast();
             fragmentManagerProvider.getFragmentManager()
@@ -279,9 +284,15 @@ public class FragmentNavigation {
                             notifyFragmentMovedToTop(fragment);
                         }
                         notifyStackListeners();
-                        scheduleBottomFragmentToTopMoving(getAnimationDuration(exitAnimation));
+//                        replaceFragmentAtBottom();
+                        //if cancel replace - next fragment not exists
+                        //if not - not exists too, but fragment on bottom appears on top
+                        //...
+                        //need to block all operation till bottom replacing finished
+                        scheduleFragmentAtBottomReplacing(getAnimationDuration(exitAnimation));
                     })
                     .commit();
+//            }
         });
         return true;
     }
@@ -439,17 +450,20 @@ public class FragmentNavigation {
         }
     }
 
-    private void scheduleBottomFragmentToTopMoving(long delay) {
-//        if (bottomFragmentRunnable != null) {
-//            actionHandler.removeCallbacks(bottomFragmentRunnable);
-//        }
-//        bottomFragmentRunnable = this::moveBottomFragmentToTop;
-        actionHandler.postDelayed(this::moveBottomFragmentToTop, delay);
+    private void scheduleFragmentAtBottomReplacing(long delay) {
+        if (bottomFragmentRunnable != null) {
+            actionHandler.removeCallbacks(bottomFragmentRunnable);
+        }
+        bottomFragmentRunnable = this::replaceFragmentAtBottom;
+        actionHandler.postDelayed(bottomFragmentRunnable, delay);
+
+//        actionHandler.postDelayed(this::replaceFragmentAtBottom, delay);
     }
 
-    private void moveBottomFragmentToTop() {
+    private void replaceFragmentAtBottom() {
         int id = jugglerView.prepareBottomView();
         if (screens.size() > 1) {
+            Log.d("KEK", "replaceFragmentAtBottom, index: " + (screens.size() - 2) + ", view id: " + id);
             FragmentMetaData metaData = screens.get(screens.size() - 2);
             Fragment bottomFragment = createFragment(metaData);//can be null here
             bottomFragment.setMenuVisibility(false);
@@ -458,6 +472,7 @@ public class FragmentNavigation {
                     .replace(id, bottomFragment)
                     .commitAllowingStateLoss();
         }
+//        backLock.notify();
     }
 
     private void hideBottomFragmentMenu() {
