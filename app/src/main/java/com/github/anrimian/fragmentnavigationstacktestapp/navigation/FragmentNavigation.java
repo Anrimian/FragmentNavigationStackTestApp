@@ -33,7 +33,7 @@ public class FragmentNavigation {
 
     private final Handler actionHandler = new Handler(Looper.getMainLooper());
     private final Object backLock = new Object();
-    private final ExecutorService backActionPool = Executors.newSingleThreadExecutor();
+    private final ExecutorService actionExecutor = Executors.newSingleThreadExecutor();
 
     private JugglerView jugglerView;
 
@@ -70,7 +70,7 @@ public class FragmentNavigation {
 
         hideBottomFragmentMenu();
 
-        if (!screens.isEmpty()) {//just orientation change
+        if (!screens.isEmpty()) {//just config change
             notifyFragmentMovedToTop(getFragmentOnTop());
             return;
         }
@@ -101,16 +101,16 @@ public class FragmentNavigation {
                                      @AnimRes int exitAnimation,
                                      @AnimRes int enterAnimation) {
         checkForInitialization();
-        if (fragments.isEmpty()) {
-            return;
-        }
-        if (fragments.size() == 1) {
-            newRootFragment(fragments.get(0), exitAnimation, enterAnimation);
-            return;
-        }
 
+        runAction(() -> {
+            if (fragments.isEmpty()) {
+                return;
+            }
+            if (fragments.size() == 1) {
+                newRootFragment(fragments.get(0), exitAnimation, enterAnimation);
+                return;
+            }
 
-        actionHandler.post(() -> {
             screens.clear();
             screens.addAll(mapList(fragments, FragmentMetaData::new));
             int id = jugglerView.getTopViewId();
@@ -141,15 +141,16 @@ public class FragmentNavigation {
 
     public void addNewFragmentStack(List<Fragment> fragments, @AnimRes int enterAnimation) {
         checkForInitialization();
-        if (fragments.isEmpty()) {
-            return;
-        }
-        if (fragments.size() == 1) {
-            addNewFragment(fragments.get(0), enterAnimation);
-            return;
-        }
 
-        actionHandler.post(() -> {
+        runAction(() -> {
+            if (fragments.isEmpty()) {
+                return;
+            }
+            if (fragments.size() == 1) {
+                addNewFragment(fragments.get(0), enterAnimation);
+                return;
+            }
+
             screens.addAll(mapList(fragments, FragmentMetaData::new));
             int id = jugglerView.prepareTopView();
 
@@ -181,7 +182,7 @@ public class FragmentNavigation {
                                @AnimRes int enterAnimation) {
         checkForInitialization();
 
-        actionHandler.post(() -> {
+        runAction(() -> {
             screens.add(new FragmentMetaData(fragment));
             int id = jugglerView.prepareTopView();
             fragment.setMenuVisibility(isVisible);
@@ -227,13 +228,13 @@ public class FragmentNavigation {
                                 @AnimRes int exitAnimation,
                                 @AnimRes int enterAnimation) {
         checkForInitialization();
-        Fragment oldRootFragment = getFragmentOnTop();
-        if (checkForEquality && equalClass(oldRootFragment, newRootFragment)) {
-            return;
-        }
 
+        runAction(() -> {
+            Fragment oldRootFragment = getFragmentOnTop();
+            if (checkForEquality && equalClass(oldRootFragment, newRootFragment)) {
+                return;
+            }
 
-        actionHandler.post(() -> {
             screens.clear();
             screens.add(new FragmentMetaData(newRootFragment));
             int topViewId = jugglerView.getTopViewId();
@@ -266,29 +267,31 @@ public class FragmentNavigation {
         if (screens.size() <= 1) {
             return false;
         }
-        backActionPool.execute(() -> runBackAction(exitAnimation));
+        actionExecutor.execute(() -> runBackAction(exitAnimation));
         return true;
     }
 
     public void clearRootFragment(@AnimRes int exitAnimation) {
         checkForInitialization();
-        if (screens.size() < 1) {
-            return;
-        }
-        if (screens.size() > 1) {
-            throw new IllegalStateException("can not clear: fragment is not root");
-        }
-        Fragment fragmentOnTop = getFragmentOnTop();
-        if (fragmentOnTop == null) {
-            return;
-        }
-        screens.removeLast();
-        fragmentManagerProvider.getFragmentManager()
-                .beginTransaction()
-                .setCustomAnimations(0, exitAnimation)
-                .remove(fragmentOnTop)
-                .runOnCommit(this::notifyStackListeners)
-                .commit();
+        runAction(() -> {
+            if (screens.size() < 1) {
+                return;
+            }
+            if (screens.size() > 1) {
+                throw new IllegalStateException("can not clear: fragment is not root");
+            }
+            Fragment fragmentOnTop = getFragmentOnTop();
+            if (fragmentOnTop == null) {
+                return;
+            }
+            screens.removeLast();
+            fragmentManagerProvider.getFragmentManager()
+                    .beginTransaction()
+                    .setCustomAnimations(0, exitAnimation)
+                    .remove(fragmentOnTop)
+                    .runOnCommit(this::notifyStackListeners)
+                    .commit();
+        });
     }
 
     /**
@@ -421,6 +424,10 @@ public class FragmentNavigation {
                     .runOnCommit(() -> fragment.setMenuVisibility(false))
                     .commitAllowingStateLoss();
         }
+    }
+
+    private void runAction(Runnable runnable) {
+        actionExecutor.execute(() -> actionHandler.post(runnable));
     }
 
     private void runBackAction(int exitAnimation) {
