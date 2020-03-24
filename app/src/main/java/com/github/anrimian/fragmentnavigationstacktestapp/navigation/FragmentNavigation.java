@@ -4,7 +4,6 @@ import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 
@@ -431,7 +430,6 @@ public class FragmentNavigation {
     }
 
     private void runBackAction(int exitAnimation) {
-        Log.d("KEK", "schedule goBack");
         synchronized (backLock) {
             actionHandler.post(() -> {
                 synchronized (backLock) {
@@ -441,12 +439,9 @@ public class FragmentNavigation {
                     }
                     Fragment fragmentOnTop = getFragmentOnTop();
                     if (fragmentOnTop == null) {
-                        Log.d("KEK", "goBack skipped, fragment on top null: ");
                         backLock.notify();
                         return;
                     }
-
-                    Log.d("KEK", "run goBack to, index: " + (screens.size() - 2) + ", top view id: " + jugglerView.getTopViewId());
 
                     screens.removeLast();
 
@@ -479,7 +474,6 @@ public class FragmentNavigation {
     private void replaceFragmentAtBottom() {
         int id = jugglerView.prepareBottomView();
         if (screens.size() > 1) {
-            Log.d("KEK", "replaceFragmentAtBottom, index: " + (screens.size() - 2) + ", view id: " + id);
             FragmentMetaData metaData = screens.get(screens.size() - 2);
             Fragment bottomFragment = createFragment(metaData);//can be null here
             bottomFragment.setMenuVisibility(false);
@@ -519,12 +513,11 @@ public class FragmentNavigation {
     }
 
     private Fragment createFragment(FragmentMetaData metaData) {
-        return fragmentManagerProvider.getFragmentManager()//can be null?
+        Fragment fragment = fragmentManagerProvider.getFragmentManager()//can be null?
                 .getFragmentFactory()
-                .instantiate(jugglerView.getContext().getClassLoader(),
-                        metaData.getFragmentClassName(),
-                        metaData.getArguments()
-                );
+                .instantiate(jugglerView.getContext().getClassLoader(), metaData.getFragmentClassName());
+        fragment.setArguments(metaData.getArguments());
+        return fragment;
     }
 
     private ArrayList<Bundle> getBundleScreens() {
