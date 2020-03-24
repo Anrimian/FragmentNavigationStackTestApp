@@ -101,7 +101,7 @@ public class FragmentNavigation {
                                      @AnimRes int enterAnimation) {
         checkForInitialization();
 
-        runAction(() -> {
+        runForwardAction(() -> {
             if (fragments.isEmpty()) {
                 return;
             }
@@ -141,7 +141,7 @@ public class FragmentNavigation {
     public void addNewFragmentStack(List<Fragment> fragments, @AnimRes int enterAnimation) {
         checkForInitialization();
 
-        runAction(() -> {
+        runForwardAction(() -> {
             if (fragments.isEmpty()) {
                 return;
             }
@@ -181,7 +181,7 @@ public class FragmentNavigation {
                                @AnimRes int enterAnimation) {
         checkForInitialization();
 
-        runAction(() -> {
+        runForwardAction(() -> {
             screens.add(new FragmentMetaData(fragment));
             int id = jugglerView.prepareTopView();
             fragment.setMenuVisibility(isVisible);
@@ -228,7 +228,7 @@ public class FragmentNavigation {
                                 @AnimRes int enterAnimation) {
         checkForInitialization();
 
-        runAction(() -> {
+        runForwardAction(() -> {
             Fragment oldRootFragment = getFragmentOnTop();
             if (checkForEquality && equalClass(oldRootFragment, newRootFragment)) {
                 return;
@@ -272,7 +272,7 @@ public class FragmentNavigation {
 
     public void clearRootFragment(@AnimRes int exitAnimation) {
         checkForInitialization();
-        runAction(() -> {
+        runForwardAction(() -> {
             if (screens.size() < 1) {
                 return;
             }
@@ -425,7 +425,7 @@ public class FragmentNavigation {
         }
     }
 
-    private void runAction(Runnable runnable) {
+    private void runForwardAction(Runnable runnable) {
         actionExecutor.execute(() -> actionHandler.post(runnable));
     }
 
